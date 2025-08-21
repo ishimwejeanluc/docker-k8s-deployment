@@ -1,0 +1,39 @@
+name: Build and Push Backend
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: docker.io
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+    - name: Set tag
+      run: echo "TAG=sha-${GITHUB_SHA::8}" >> $GITHUB_ENV
+
+    - name: Build and push backend
+      env:
+        TAG: ${{ env.TAG }}
+      run: |
+        docker build -t $REGISTRY/${{ secrets.DOCKER_HUB_USERNAME }}/backendfinal:${TAG} -f backend/Dockerfile .
+        docker push $REGISTRY/${{ secrets.DOCKER_HUB_USERNAME }}/backendfinal:${TAG}
+
+    - name: Save tag for downstream job
+      run: echo "${TAG}" > image-tag.txt
+
+    - name: Upload tag artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-image-tag
+        path: image-tag.txt

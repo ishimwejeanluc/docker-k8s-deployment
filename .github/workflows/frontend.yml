@@ -1,0 +1,102 @@
+name: Build and Deploy Frontend
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Backend"]
+    types:
+      - completed
+
+env:
+  REGISTRY: docker.io
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+    - name: Download backend image tag artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-image-tag
+
+    - name: Read image tag
+      id: tag
+      run: |
+        TAG=$(cat image-tag.txt)
+        echo "TAG=$TAG" >> $GITHUB_ENV
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+    - name: Build and push frontend
+      env:
+        TAG: ${{ env.TAG }}
+      run: |
+        docker build -t $REGISTRY/${{ secrets.DOCKER_HUB_USERNAME }}/frontendfinal:${TAG} -f frontend/Dockerfile ./frontend
+        docker push $REGISTRY/${{ secrets.DOCKER_HUB_USERNAME }}/frontendfinal:${TAG}
+
+    - name: Upload tag artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: image-tag
+        path: image-tag.txt
+
+  deploy:
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    if: ${{ needs.build-frontend.result == 'success' }}
+
+    steps:
+    - name: Download image tag artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: image-tag
+
+    - name: Read image tag
+      id: tag
+      run: |
+        TAG=$(cat image-tag.txt)
+        echo "TAG=$TAG" >> $GITHUB_ENV
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+    - name: Deploy to VM via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.AWS_HOST }}
+        username: ubuntu
+        key: ${{ secrets.AWS_SSH_KEY }}
+        envs: TAG,DOCKER_HUB_USERNAME
+        script: |
+          if [ ! -d /home/ubuntu/docker-k8s-deployment ]; then
+            git clone https://github.com/ishimwejeanluc/docker-k8s-deployment.git /home/ubuntu/docker-k8s-deployment;
+          fi
+          cd /home/ubuntu/docker-k8s-deployment
+          git pull origin main
+
+
+          sed -i -E "s|(image:.*${DOCKER_HUB_USERNAME}/backendfinal:)[^\"'\ ]*|\1${TAG}|" docker-compose.yml
+          sed -i -E "s|(image:.*${DOCKER_HUB_USERNAME}/frontendfinal:)[^\"'\ ]*|\1${TAG}|" docker-compose.yml
+          sed -i "s|DB_HOST:.*|DB_HOST: ${DB_HOST}|" docker-compose.yml
+          sed -i "s|DB_USER:.*|DB_USER: ${DB_USER}|" docker-compose.yml
+          sed -i "s|DB_PASSWORD:.*|DB_PASSWORD: ${DB_PASSWORD}|" docker-compose.yml
+          sed -i "s|DB_DATABASE:.*|DB_DATABASE: ${DB_DATABASE}|" docker-compose.yml
+          sed -i "s|DB_TABLENAME:.*|DB_TABLENAME: ${DB_TABLENAME}|" docker-compose.yml
+          sed -i "s|DB_WAITFORCONNECTIONS:.*|DB_WAITFORCONNECTIONS: ${DB_WAITFORCONNECTIONS}|" docker-compose.yml
+          sed -i "s|DB_CONNECTIONLIMIT:.*|DB_CONNECTIONLIMIT: ${DB_CONNECTIONLIMIT}|" docker-compose.yml
+          sed -i "s|DB_QUEUELIMIT:.*|DB_QUEUELIMIT: ${DB_QUEUELIMIT}|" docker-compose.yml
+          sed -i "s|PORT:.*|PORT: ${PORT}|" docker-compose.yml
+
+
+
+          sudo docker compose -f docker-compose.yml config
+          sudo docker compose -f docker-compose.yml pull
+          sudo docker compose -f docker-compose.yml down
+          sudo docker compose -f docker-compose.yml up -d --remove-orphans
+      env:
+        TAG: ${{ env.TAG }}
+        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
