@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadbfinal
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+    volumes:
+      - ./mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    image: backendfinal
+    container_name: backendfinal
+    environment:
+      PORT: ${PORT}
+      DB_HOST: mariadb
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_TABLENAME: ${DB_TABLENAME}
+      DB_WAITFORCONNECTIONS: ${DB_WAITFORCONNECTIONS}
+      DB_CONNECTIONLIMIT: ${DB_CONNECTIONLIMIT}
+      DB_QUEUELIMIT: ${DB_QUEUELIMIT}
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
