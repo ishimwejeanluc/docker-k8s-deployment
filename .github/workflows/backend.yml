@@ -21,16 +21,16 @@ jobs:
         run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
       - name: Set tag
-        run: echo "TAG=sha-${GITHUB_SHA::8}" >> $GITHUB_ENV
+        id: set-tag
+        run: echo "tag=sha-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
       - name: Build and push backend
         env:
-          TAG: ${{ env.TAG }}
+          TAG: ${{ steps.set-tag.outputs.tag }}
         run: |
           docker build -t $REGISTRY/${{ secrets.DOCKER_HUB_USERNAME }}/backendfinal:${TAG} -f backend/Dockerfile ./backend
           docker push $REGISTRY/${{ secrets.DOCKER_HUB_USERNAME }}/backendfinal:${TAG}
 
       - name: Save tag for downstream job
         id: save-tag
-        run: |
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        run: echo "tag=${{ steps.set-tag.outputs.tag }}" >> $GITHUB_OUTPUT
