@@ -20,13 +20,11 @@ RUN mkdir -p /usr/share/nginx/buffer /usr/share/nginx/log /run \
  && chown -R nginx:nginx /usr/share/nginx /usr/share/nginx/buffer /usr/share/nginx/log /run /var/cache/nginx \
  && mkdir -p /var/cache/nginx && chown -R nginx:nginx /var/cache/nginx
 
+# Copy built frontend files
 COPY --from=builder /app/dist /usr/share/nginx/html
-
+COPY --from=builder /app/public /usr/share/nginx/html
 
 EXPOSE 80
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
-  CMD wget --quiet --tries=1 --spider http://localhost:80 || exit 1
 
 USER nginx
 
