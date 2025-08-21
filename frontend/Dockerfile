@@ -1,29 +1,33 @@
-# Build stage
 FROM node:20-alpine AS builder
 
-WORKDIR /usr/src/app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-COPY package*.json ./
-RUN npm ci --only=production
+WORKDIR /app
 
-COPY . .
+COPY package.json package-lock.json* ./
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+RUN npm install
+COPY --chown=appuser:appgroup . .
 RUN npm run build
 
-# Production stage
 FROM nginx:stable-alpine
 
-# Copy built assets from builder
-COPY --from=builder /usr/src/app/dist /usr/share/nginx/html
+# Create required directories and fix permissions for nginx user
+RUN mkdir -p /usr/share/nginx/buffer /usr/share/nginx/log /run \
+ && chown -R nginx:nginx /usr/share/nginx /usr/share/nginx/buffer /usr/share/nginx/log /run /var/cache/nginx \
+ && mkdir -p /var/cache/nginx && chown -R nginx:nginx /var/cache/nginx
+
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 
-
-# Copy custom nginx config if you have one
-# COPY nginx.conf /etc/nginx/nginx.conf
-
-
-# Expose port 80 for web traffic
 EXPOSE 80
 
-# Healthcheck for Nginx
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
   CMD wget --quiet --tries=1 --spider http://localhost:80 || exit 1
+
+USER nginx
+
+CMD ["nginx", "-g", "daemon off;"]
