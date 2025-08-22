@@ -18,7 +18,7 @@ services:
       retries: 5
 
   backend:
-    image: ${DOCKER_HUB_USERNAME}/backendfinal:${TAG}
+    image: ${DOCKER_HUB_USERNAME}/backendfinal:${BACKEND_TAG}
     container_name: backendfinal
     environment:
       PORT: ${PORT}
