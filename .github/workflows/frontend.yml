@@ -30,7 +30,6 @@ jobs:
         name: backend_tag
         path: backend_tag.txt
 
-    # FIX: Save frontend tag as artifact for downstream job
     - name: Set frontend tag
       id: set-frontend-tag
       run: |
@@ -58,24 +57,28 @@ jobs:
     if: ${{ needs.build-frontend.result == 'success' }}
 
     steps:
-    # FIX: Download and export all required variables from artifacts
     - name: Download TAG artifact
       uses: actions/download-artifact@v4
       with:
         name: tag
-    - name: Export TAG for SSH
-      run: echo "TAG=$(cat tag.txt)" >> $GITHUB_ENV
-
     - name: Download BACKEND_TAG artifact
       uses: actions/download-artifact@v4
       with:
         name: backend_tag
-    - name: Export BACKEND_TAG for SSH
-      run: echo "BACKEND_TAG=$(cat backend_tag.txt)" >> $GITHUB_ENV
-
-    - name: Export DOCKER_HUB_USERNAME for SSH
-      run: echo "DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}" >> $GITHUB_ENV
-
+    - name: Set deployment environment variables
+      run: |
+        echo "TAG=$(cat tag.txt)" >> $GITHUB_ENV
+        echo "BACKEND_TAG=$(cat backend_tag.txt)" >> $GITHUB_ENV
+        echo "DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}" >> $GITHUB_ENV
+        echo "DB_HOST=${{ secrets.DB_HOST }}" >> $GITHUB_ENV
+        echo "DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
+        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
+        echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> $GITHUB_ENV
+        echo "DB_TABLENAME=${{ secrets.DB_TABLENAME }}" >> $GITHUB_ENV
+        echo "DB_WAITFORCONNECTIONS=${{ secrets.DB_WAITFORCONNECTIONS }}" >> $GITHUB_ENV
+        echo "DB_CONNECTIONLIMIT=${{ secrets.DB_CONNECTIONLIMIT }}" >> $GITHUB_ENV
+        echo "DB_QUEUELIMIT=${{ secrets.DB_QUEUELIMIT }}" >> $GITHUB_ENV
+        echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -106,17 +109,3 @@ jobs:
           sudo docker compose -f docker-compose.yml pull
           sudo docker compose -f docker-compose.yml down
           sudo docker compose -f docker-compose.yml up -d --remove-orphans
-
-      env:
-        TAG: ${{ env.TAG }}
-        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-        BACKEND_TAG: ${{ env.BACKEND_TAG }}
-        DB_HOST: ${{ secrets.DB_HOST }}
-        DB_USER: ${{ secrets.DB_USER }}
-        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        DB_DATABASE: ${{ secrets.DB_DATABASE }}
-        DB_TABLENAME: ${{ secrets.DB_TABLENAME }}
-        DB_WAITFORCONNECTIONS: ${{ secrets.DB_WAITFORCONNECTIONS }}
-        DB_CONNECTIONLIMIT: ${{ secrets.DB_CONNECTIONLIMIT }}
-        DB_QUEUELIMIT: ${{ secrets.DB_QUEUELIMIT }}
-        PORT: ${{ secrets.PORT }}
