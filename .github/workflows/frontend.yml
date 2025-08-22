@@ -20,15 +20,19 @@ jobs:
     - name: Log in to Docker Hub
       run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
-    # Save backend tag as artifact for downstream job
-    - name: Read backend image tag
-      run: |
-        echo "${{ needs.build-backend.outputs.backend-image-tag }}" > backend_tag.txt
-    - name: Upload BACKEND_TAG artifact
-      uses: actions/upload-artifact@v4
+    # Download backend tag from the completed workflow
+    - name: Download backend tag artifact
+      uses: actions/download-artifact@v4
       with:
-        name: backend_tag
-        path: backend_tag.txt
+        name: backend-tag
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        run-id: ${{ github.event.workflow_run.id }}
+
+    - name: Read backend tag
+      run: |
+        BACKEND_TAG=$(cat backend_tag.txt)
+        echo "BACKEND_TAG=$BACKEND_TAG" >> $GITHUB_ENV
+        echo "Backend tag: $BACKEND_TAG"
 
     - name: Set frontend tag
       id: set-frontend-tag
@@ -37,6 +41,7 @@ jobs:
         echo "$TAG" > tag.txt
         echo "TAG=$TAG" >> $GITHUB_ENV
         echo "tag=$TAG" >> $GITHUB_OUTPUT
+
     - name: Upload TAG artifact
       uses: actions/upload-artifact@v4
       with:
@@ -46,7 +51,7 @@ jobs:
     - name: Build and push frontend
       env:
         TAG: ${{ env.TAG }}
-        BACKEND_TAG: ${{ needs.build-backend.outputs.backend-image-tag }}
+        BACKEND_TAG: ${{ env.BACKEND_TAG }}
         DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       run: |
         docker build -t $REGISTRY/${DOCKER_HUB_USERNAME}/frontendfinal:${TAG} -f frontend/Dockerfile ./frontend
@@ -62,10 +67,14 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: tag
-    - name: Download BACKEND_TAG artifact
+
+    - name: Download backend tag artifact
       uses: actions/download-artifact@v4
       with:
-        name: backend_tag
+        name: backend-tag
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        run-id: ${{ github.event.workflow_run.id }}
+
     - name: Read deployment tags
       run: |
         TAG=$(cat tag.txt)
@@ -93,7 +102,6 @@ jobs:
         echo "TAG: ${{ env.TAG }}"
         echo "BACKEND_TAG: ${{ env.BACKEND_TAG }}"
         echo "DOCKER_HUB_USERNAME: ${{ env.DOCKER_HUB_USERNAME }}"
-        echo "DB_HOST: ${{ env.DB_HOST }}"
 
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
@@ -107,7 +115,6 @@ jobs:
           echo "TAG: ${TAG}"
           echo "BACKEND_TAG: ${BACKEND_TAG}"
           echo "DOCKER_HUB_USERNAME: ${DOCKER_HUB_USERNAME}"
-          echo "DB_HOST: ${DB_HOST}"
           echo "========================"
           
           if [ ! -d /home/ubuntu/docker-k8s-deployment ]; then
