@@ -96,7 +96,7 @@ jobs:
         echo "DB_CONNECTIONLIMIT=${{ secrets.DB_CONNECTIONLIMIT }}" >> $GITHUB_ENV
         echo "DB_QUEUELIMIT=${{ secrets.DB_QUEUELIMIT }}" >> $GITHUB_ENV
         echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
-        echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> $GITHUB_ENV
+        
 
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
@@ -104,7 +104,7 @@ jobs:
         host: ${{ secrets.AWS_HOST }}
         username: ubuntu
         key: ${{ secrets.AWS_SSH_KEY }}
-        envs: TAG,BACKEND_TAG,DOCKER_HUB_USERNAME,DB_HOST,DB_USER,DB_PASSWORD,DB_DATABASE,DB_TABLENAME,DB_WAITFORCONNECTIONS,DB_CONNECTIONLIMIT,DB_QUEUELIMIT,PORT,VITE_API_URL
+        envs: TAG,BACKEND_TAG,DOCKER_HUB_USERNAME,DB_HOST,DB_USER,DB_PASSWORD,DB_DATABASE,DB_TABLENAME,DB_WAITFORCONNECTIONS,DB_CONNECTIONLIMIT,DB_QUEUELIMIT,PORT
         script: |
           echo "=== DEBUG ENV VARS ==="
           echo "TAG: ${TAG}"
@@ -138,7 +138,7 @@ jobs:
           sed -i "s|DB_CONNECTIONLIMIT: .*|DB_CONNECTIONLIMIT: ${DB_CONNECTIONLIMIT}|" docker-compose.yml
           sed -i "s|DB_QUEUELIMIT: .*|DB_QUEUELIMIT: ${DB_QUEUELIMIT}|" docker-compose.yml
           sed -i "s|PORT: .*|PORT: ${PORT}|" docker-compose.yml
-          sed -i "s|VITE_API_URL: .*|VITE_API_URL: ${VITE_API_URL}|" docker-compose.yml
+
 
           # Show docker-compose.yml after changes
           echo "=== AFTER CHANGES ==="
@@ -161,4 +161,4 @@ jobs:
         DB_CONNECTIONLIMIT: ${{ env.DB_CONNECTIONLIMIT }}
         DB_QUEUELIMIT: ${{ env.DB_QUEUELIMIT }}
         PORT: ${{ env.PORT }}
-        VITE_API_URL: ${{ env.VITE_API_URL }}
+  

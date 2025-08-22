@@ -16,7 +16,7 @@ function Table() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}`);
+        const response = await axios.get("/api");
         const data = response.data;
 
         // Ensure the response is an array
