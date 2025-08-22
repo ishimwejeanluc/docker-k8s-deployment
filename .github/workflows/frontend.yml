@@ -129,6 +129,7 @@ jobs:
           sed -i "s|DB_HOST: .*|DB_HOST: ${DB_HOST}|" docker-compose.yml
           sed -i "s|DB_USER: .*|DB_USER: ${DB_USER}|" docker-compose.yml
           sed -i "s|MYSQL_ROOT_PASSWORD: .*|MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}|" docker-compose.yml
+           sed -i "s|DB_PASSWORD: .*|DB_PASSWORD: ${DB_PASSWORD}|" docker-compose.yml
           sed -i "s|MYSQL_DATABASE: .*|MYSQL_DATABASE: ${DB_DATABASE}|" docker-compose.yml
           sed -i "s|DB_TABLENAME: .*|DB_TABLENAME: ${DB_TABLENAME}|" docker-compose.yml
           sed -i "s|DB_WAITFORCONNECTIONS: .*|DB_WAITFORCONNECTIONS: ${DB_WAITFORCONNECTIONS}|" docker-compose.yml
