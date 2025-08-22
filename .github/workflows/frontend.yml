@@ -97,12 +97,6 @@ jobs:
         echo "DB_QUEUELIMIT=${{ secrets.DB_QUEUELIMIT }}" >> $GITHUB_ENV
         echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
 
-    - name: Debug Environment Variables
-      run: |
-        echo "TAG: ${{ env.TAG }}"
-        echo "BACKEND_TAG: ${{ env.BACKEND_TAG }}"
-        echo "DOCKER_HUB_USERNAME: ${{ env.DOCKER_HUB_USERNAME }}"
-
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -123,17 +117,28 @@ jobs:
           cd /home/ubuntu/docker-k8s-deployment
           git pull origin main
 
-          sed -i -E "s|(image:.*${DOCKER_HUB_USERNAME}/backendfinal:)[^\"'\ ]*|\1${BACKEND_TAG}|" docker-compose.yml
-          sed -i -E "s|(image:.*${DOCKER_HUB_USERNAME}/frontendfinal:)[^\"'\ ]*|\1${TAG}|" docker-compose.yml
-          sed -i "s|DB_HOST:.*|DB_HOST: ${DB_HOST}|" docker-compose.yml
-          sed -i "s|DB_USER:.*|DB_USER: ${DB_USER}|" docker-compose.yml
-          sed -i "s|DB_PASSWORD:.*|DB_PASSWORD: ${DB_PASSWORD}|" docker-compose.yml
-          sed -i "s|DB_DATABASE:.*|DB_DATABASE: ${DB_DATABASE}|" docker-compose.yml
-          sed -i "s|DB_TABLENAME:.*|DB_TABLENAME: ${DB_TABLENAME}|" docker-compose.yml
-          sed -i "s|DB_WAITFORCONNECTIONS:.*|DB_WAITFORCONNECTIONS: ${DB_WAITFORCONNECTIONS}|" docker-compose.yml
-          sed -i "s|DB_CONNECTIONLIMIT:.*|DB_CONNECTIONLIMIT: ${DB_CONNECTIONLIMIT}|" docker-compose.yml
-          sed -i "s|DB_QUEUELIMIT:.*|DB_QUEUELIMIT: ${DB_QUEUELIMIT}|" docker-compose.yml
-          sed -i "s|PORT:.*|PORT: ${PORT}|" docker-compose.yml
+          # Show current docker-compose.yml before changes
+          echo "=== BEFORE CHANGES ==="
+          grep -A 1 -B 1 "image:" docker-compose.yml
+          
+          # Update image tags - fixed sed patterns
+          sed -i "s|image: .*/backendfinal:.*|image: ${DOCKER_HUB_USERNAME}/backendfinal:${BACKEND_TAG}|g" docker-compose.yml
+          sed -i "s|image: .*/frontendfinal:.*|image: ${DOCKER_HUB_USERNAME}/frontendfinal:${TAG}|g" docker-compose.yml
+          
+          # Update environment variables
+          sed -i "s|DB_HOST: .*|DB_HOST: ${DB_HOST}|" docker-compose.yml
+          sed -i "s|DB_USER: .*|DB_USER: ${DB_USER}|" docker-compose.yml
+          sed -i "s|DB_PASSWORD: .*|DB_PASSWORD: ${DB_PASSWORD}|" docker-compose.yml
+          sed -i "s|DB_DATABASE: .*|DB_DATABASE: ${DB_DATABASE}|" docker-compose.yml
+          sed -i "s|DB_TABLENAME: .*|DB_TABLENAME: ${DB_TABLENAME}|" docker-compose.yml
+          sed -i "s|DB_WAITFORCONNECTIONS: .*|DB_WAITFORCONNECTIONS: ${DB_WAITFORCONNECTIONS}|" docker-compose.yml
+          sed -i "s|DB_CONNECTIONLIMIT: .*|DB_CONNECTIONLIMIT: ${DB_CONNECTIONLIMIT}|" docker-compose.yml
+          sed -i "s|DB_QUEUELIMIT: .*|DB_QUEUELIMIT: ${DB_QUEUELIMIT}|" docker-compose.yml
+          sed -i "s|PORT: .*|PORT: ${PORT}|" docker-compose.yml
+
+          # Show docker-compose.yml after changes
+          echo "=== AFTER CHANGES ==="
+          grep -A 1 -B 1 "image:" docker-compose.yml
 
           sudo docker compose -f docker-compose.yml config
           sudo docker compose -f docker-compose.yml pull
