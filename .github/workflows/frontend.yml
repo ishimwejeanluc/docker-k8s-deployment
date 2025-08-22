@@ -35,6 +35,7 @@ jobs:
       run: |
         TAG=sha-${GITHUB_SHA::8}
         echo "$TAG" > tag.txt
+        echo "TAG=$TAG" >> $GITHUB_ENV
         echo "tag=$TAG" >> $GITHUB_OUTPUT
     - name: Upload TAG artifact
       uses: actions/upload-artifact@v4
@@ -74,6 +75,7 @@ jobs:
         echo "BACKEND_TAG=$BACKEND_TAG" >> $GITHUB_ENV
         echo "tag=$TAG" >> $GITHUB_OUTPUT
         echo "backend_tag=$BACKEND_TAG" >> $GITHUB_OUTPUT
+
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -105,6 +107,8 @@ jobs:
           sudo docker compose -f docker-compose.yml down
           sudo docker compose -f docker-compose.yml up -d --remove-orphans
       env:
+        TAG: ${{ env.TAG }}
+        BACKEND_TAG: ${{ env.BACKEND_TAG }}
         DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         DB_HOST: ${{ secrets.DB_HOST }}
         DB_USER: ${{ secrets.DB_USER }}
