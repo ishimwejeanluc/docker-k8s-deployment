@@ -8,7 +8,6 @@ on:
 
 env:
   REGISTRY: docker.io
-  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
 
 jobs:
   build-frontend:
@@ -21,22 +20,37 @@ jobs:
     - name: Log in to Docker Hub
       run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
+    # FIX: Save backend tag as artifact for downstream job
     - name: Read backend image tag
       run: |
-        BACKEND_TAG=${{ needs.build-backend.outputs.backend-image-tag }}
-        echo "BACKEND_TAG=$BACKEND_TAG" >> $GITHUB_ENV
+        echo "${{ needs.build-backend.outputs.backend-image-tag }}" > backend_tag.txt
+    - name: Upload BACKEND_TAG artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend_tag
+        path: backend_tag.txt
 
+    # FIX: Save frontend tag as artifact for downstream job
     - name: Set frontend tag
       id: set-frontend-tag
-      run: echo "tag=sha-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+      run: |
+        TAG=sha-${GITHUB_SHA::8}
+        echo "$TAG" > tag.txt
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+    - name: Upload TAG artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tag
+        path: tag.txt
 
     - name: Build and push frontend
       env:
         TAG: ${{ steps.set-frontend-tag.outputs.tag }}
-        BACKEND_TAG: ${{ env.BACKEND_TAG }}
+        BACKEND_TAG: ${{ needs.build-backend.outputs.backend-image-tag }}
+        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       run: |
-        docker build -t $REGISTRY/${{ secrets.DOCKER_HUB_USERNAME }}/frontendfinal:${TAG} -f frontend/Dockerfile ./frontend
-        docker push $REGISTRY/${{ secrets.DOCKER_HUB_USERNAME }}/frontendfinal:${TAG}
+        docker build -t $REGISTRY/${DOCKER_HUB_USERNAME}/frontendfinal:${TAG} -f frontend/Dockerfile ./frontend
+        docker push $REGISTRY/${DOCKER_HUB_USERNAME}/frontendfinal:${TAG}
 
   deploy:
     needs: build-frontend
@@ -44,6 +58,24 @@ jobs:
     if: ${{ needs.build-frontend.result == 'success' }}
 
     steps:
+    # FIX: Download and export all required variables from artifacts
+    - name: Download TAG artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: tag
+    - name: Export TAG for SSH
+      run: echo "TAG=$(cat tag.txt)" >> $GITHUB_ENV
+
+    - name: Download BACKEND_TAG artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: backend_tag
+    - name: Export BACKEND_TAG for SSH
+      run: echo "BACKEND_TAG=$(cat backend_tag.txt)" >> $GITHUB_ENV
+
+    - name: Export DOCKER_HUB_USERNAME for SSH
+      run: echo "DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}" >> $GITHUB_ENV
+
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -74,3 +106,17 @@ jobs:
           sudo docker compose -f docker-compose.yml pull
           sudo docker compose -f docker-compose.yml down
           sudo docker compose -f docker-compose.yml up -d --remove-orphans
+
+      env:
+        TAG: ${{ env.TAG }}
+        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+        BACKEND_TAG: ${{ env.BACKEND_TAG }}
+        DB_HOST: ${{ secrets.DB_HOST }}
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DB_DATABASE: ${{ secrets.DB_DATABASE }}
+        DB_TABLENAME: ${{ secrets.DB_TABLENAME }}
+        DB_WAITFORCONNECTIONS: ${{ secrets.DB_WAITFORCONNECTIONS }}
+        DB_CONNECTIONLIMIT: ${{ secrets.DB_CONNECTIONLIMIT }}
+        DB_QUEUELIMIT: ${{ secrets.DB_QUEUELIMIT }}
+        PORT: ${{ secrets.PORT }}
