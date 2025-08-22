@@ -20,7 +20,7 @@ jobs:
     - name: Log in to Docker Hub
       run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
-    # FIX: Save backend tag as artifact for downstream job
+    # Save backend tag as artifact for downstream job
     - name: Read backend image tag
       run: |
         echo "${{ needs.build-backend.outputs.backend-image-tag }}" > backend_tag.txt
@@ -45,7 +45,7 @@ jobs:
 
     - name: Build and push frontend
       env:
-        TAG: ${{ steps.set-frontend-tag.outputs.tag }}
+        TAG: ${{ env.TAG }}
         BACKEND_TAG: ${{ needs.build-backend.outputs.backend-image-tag }}
         DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       run: |
@@ -73,8 +73,21 @@ jobs:
         BACKEND_TAG=$(cat backend_tag.txt)
         echo "TAG=$TAG" >> $GITHUB_ENV
         echo "BACKEND_TAG=$BACKEND_TAG" >> $GITHUB_ENV
-        echo "tag=$TAG" >> $GITHUB_OUTPUT
-        echo "backend_tag=$BACKEND_TAG" >> $GITHUB_OUTPUT
+
+    - name: Set Docker Hub Username Env
+      run: echo "DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}" >> $GITHUB_ENV
+
+    - name: Set DB secrets as env
+      run: |
+        echo "DB_HOST=${{ secrets.DB_HOST }}" >> $GITHUB_ENV
+        echo "DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
+        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
+        echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> $GITHUB_ENV
+        echo "DB_TABLENAME=${{ secrets.DB_TABLENAME }}" >> $GITHUB_ENV
+        echo "DB_WAITFORCONNECTIONS=${{ secrets.DB_WAITFORCONNECTIONS }}" >> $GITHUB_ENV
+        echo "DB_CONNECTIONLIMIT=${{ secrets.DB_CONNECTIONLIMIT }}" >> $GITHUB_ENV
+        echo "DB_QUEUELIMIT=${{ secrets.DB_QUEUELIMIT }}" >> $GITHUB_ENV
+        echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
 
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
@@ -109,13 +122,13 @@ jobs:
       env:
         TAG: ${{ env.TAG }}
         BACKEND_TAG: ${{ env.BACKEND_TAG }}
-        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-        DB_HOST: ${{ secrets.DB_HOST }}
-        DB_USER: ${{ secrets.DB_USER }}
-        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        DB_DATABASE: ${{ secrets.DB_DATABASE }}
-        DB_TABLENAME: ${{ secrets.DB_TABLENAME }}
-        DB_WAITFORCONNECTIONS: ${{ secrets.DB_WAITFORCONNECTIONS }}
-        DB_CONNECTIONLIMIT: ${{ secrets.DB_CONNECTIONLIMIT }}
-        DB_QUEUELIMIT: ${{ secrets.DB_QUEUELIMIT }}
-        PORT: ${{ secrets.PORT }}
+        DOCKER_HUB_USERNAME: ${{ env.DOCKER_HUB_USERNAME }}
+        DB_HOST: ${{ env.DB_HOST }}
+        DB_USER: ${{ env.DB_USER }}
+        DB_PASSWORD: ${{ env.DB_PASSWORD }}
+        DB_DATABASE: ${{ env.DB_DATABASE }}
+        DB_TABLENAME: ${{ env.DB_TABLENAME }}
+        DB_WAITFORCONNECTIONS: ${{ env.DB_WAITFORCONNECTIONS }}
+        DB_CONNECTIONLIMIT: ${{ env.DB_CONNECTIONLIMIT }}
+        DB_QUEUELIMIT: ${{ env.DB_QUEUELIMIT }}
+        PORT: ${{ env.PORT }}
