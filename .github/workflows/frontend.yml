@@ -65,27 +65,22 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: backend_tag
-    - name: Set deployment environment variables
+    - name: Read deployment tags
+      id: tag
       run: |
-        echo "TAG=$(cat tag.txt)" >> $GITHUB_ENV
-        echo "BACKEND_TAG=$(cat backend_tag.txt)" >> $GITHUB_ENV
-        echo "DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}" >> $GITHUB_ENV
-        echo "DB_HOST=${{ secrets.DB_HOST }}" >> $GITHUB_ENV
-        echo "DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
-        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
-        echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> $GITHUB_ENV
-        echo "DB_TABLENAME=${{ secrets.DB_TABLENAME }}" >> $GITHUB_ENV
-        echo "DB_WAITFORCONNECTIONS=${{ secrets.DB_WAITFORCONNECTIONS }}" >> $GITHUB_ENV
-        echo "DB_CONNECTIONLIMIT=${{ secrets.DB_CONNECTIONLIMIT }}" >> $GITHUB_ENV
-        echo "DB_QUEUELIMIT=${{ secrets.DB_QUEUELIMIT }}" >> $GITHUB_ENV
-        echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
+        TAG=$(cat tag.txt)
+        BACKEND_TAG=$(cat backend_tag.txt)
+        echo "TAG=$TAG" >> $GITHUB_ENV
+        echo "BACKEND_TAG=$BACKEND_TAG" >> $GITHUB_ENV
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+        echo "backend_tag=$BACKEND_TAG" >> $GITHUB_OUTPUT
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.AWS_HOST }}
         username: ubuntu
         key: ${{ secrets.AWS_SSH_KEY }}
-        envs: TAG,DOCKER_HUB_USERNAME,BACKEND_TAG,DB_HOST,DB_USER,DB_PASSWORD,DB_DATABASE,DB_TABLENAME,DB_WAITFORCONNECTIONS,DB_CONNECTIONLIMIT,DB_QUEUELIMIT,PORT
+        envs: TAG,BACKEND_TAG,DOCKER_HUB_USERNAME,DB_HOST,DB_USER,DB_PASSWORD,DB_DATABASE,DB_TABLENAME,DB_WAITFORCONNECTIONS,DB_CONNECTIONLIMIT,DB_QUEUELIMIT,PORT
         script: |
           if [ ! -d /home/ubuntu/docker-k8s-deployment ]; then
             git clone https://github.com/ishimwejeanluc/docker-k8s-deployment.git /home/ubuntu/docker-k8s-deployment;
@@ -109,3 +104,14 @@ jobs:
           sudo docker compose -f docker-compose.yml pull
           sudo docker compose -f docker-compose.yml down
           sudo docker compose -f docker-compose.yml up -d --remove-orphans
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_DATABASE: ${{ secrets.DB_DATABASE }}
+      DB_TABLENAME: ${{ secrets.DB_TABLENAME }}
+      DB_WAITFORCONNECTIONS: ${{ secrets.DB_WAITFORCONNECTIONS }}
+      DB_CONNECTIONLIMIT: ${{ secrets.DB_CONNECTIONLIMIT }}
+      DB_QUEUELIMIT: ${{ secrets.DB_QUEUELIMIT }}
+      PORT: ${{ secrets.PORT }}
