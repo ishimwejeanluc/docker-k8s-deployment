@@ -67,7 +67,6 @@ jobs:
       with:
         name: backend_tag
     - name: Read deployment tags
-      id: tag
       run: |
         TAG=$(cat tag.txt)
         BACKEND_TAG=$(cat backend_tag.txt)
@@ -89,6 +88,13 @@ jobs:
         echo "DB_QUEUELIMIT=${{ secrets.DB_QUEUELIMIT }}" >> $GITHUB_ENV
         echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
 
+    - name: Debug Environment Variables
+      run: |
+        echo "TAG: ${{ env.TAG }}"
+        echo "BACKEND_TAG: ${{ env.BACKEND_TAG }}"
+        echo "DOCKER_HUB_USERNAME: ${{ env.DOCKER_HUB_USERNAME }}"
+        echo "DB_HOST: ${{ env.DB_HOST }}"
+
     - name: Deploy to VM via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -97,6 +103,13 @@ jobs:
         key: ${{ secrets.AWS_SSH_KEY }}
         envs: TAG,BACKEND_TAG,DOCKER_HUB_USERNAME,DB_HOST,DB_USER,DB_PASSWORD,DB_DATABASE,DB_TABLENAME,DB_WAITFORCONNECTIONS,DB_CONNECTIONLIMIT,DB_QUEUELIMIT,PORT
         script: |
+          echo "=== DEBUG ENV VARS ==="
+          echo "TAG: ${TAG}"
+          echo "BACKEND_TAG: ${BACKEND_TAG}"
+          echo "DOCKER_HUB_USERNAME: ${DOCKER_HUB_USERNAME}"
+          echo "DB_HOST: ${DB_HOST}"
+          echo "========================"
+          
           if [ ! -d /home/ubuntu/docker-k8s-deployment ]; then
             git clone https://github.com/ishimwejeanluc/docker-k8s-deployment.git /home/ubuntu/docker-k8s-deployment;
           fi
