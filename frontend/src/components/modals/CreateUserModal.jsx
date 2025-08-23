@@ -38,6 +38,7 @@ function CreateUserModal({ addUser }) {
         name,
         email
       });
+      
 
       //incase of success
       if (res.status === 201) {
