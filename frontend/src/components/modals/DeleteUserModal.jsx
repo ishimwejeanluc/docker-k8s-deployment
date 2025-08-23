@@ -21,6 +21,8 @@ function DeleteUserModal() {
       return;
     }
     try {
+      console.log("Sending DELETE request to API with data:", { id }); // Log the DELETE request data
+
       //delete req to the server with data payload
       const res = await axios.request({
         method: "delete",

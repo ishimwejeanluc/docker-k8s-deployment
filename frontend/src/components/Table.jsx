@@ -16,6 +16,7 @@ function Table() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        console.log("Fetching users from API"); // Debugging line
         const response = await axios.get("http://ec2-3-129-72-68.us-east-2.compute.amazonaws.com/api");
         const data = response.data;
 

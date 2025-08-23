@@ -32,6 +32,7 @@ function CreateUserModal({ addUser }) {
     console.log("API URL:", apiUrl); // Should log "http://172.16.30.59:3000"
     }
     try {
+      console.log("Sending POST request to API with data:", { name, email }); // Debugging line
       //post req to server
       const res = await axios.post(`${apiUrl}`, {
         name,
