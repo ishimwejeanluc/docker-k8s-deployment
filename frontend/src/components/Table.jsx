@@ -16,7 +16,7 @@ function Table() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("http://backend:5000/api");
+        const response = await axios.get("http://ec2-3-129-72-68.us-east-2.compute.amazonaws.com/api");
         const data = response.data;
 
         // Ensure the response is an array
