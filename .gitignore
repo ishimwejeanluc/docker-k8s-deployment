@@ -40,3 +40,4 @@ yarn-error.log
 .pnp.js
 secrets.env
 docker-compose-dev.yml
+k8s

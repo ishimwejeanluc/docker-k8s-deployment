@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 
-const apiUrl = "http://ec2-3-129-72-68.us-east-2.compute.amazonaws.com/api";
+const apiUrl = "/api";
 console.log("API URL:", apiUrl); // Should log "http://172.16.30.59:3000"
 
 //starting of the functional component which takes a argument inside for adding the user to the user aray for dynamic display witout any reload

@@ -35,7 +35,7 @@ function EditUserModal() {
     try {
       console.log("Sending PUT request to API with data:", { id, name, email });
       //put req to server
-      const res = await axios.put(`http://ec2-3-129-72-68.us-east-2.compute.amazonaws.com/api`, {
+      const res = await axios.put(`/api`, {
         id,
         name,
         email
